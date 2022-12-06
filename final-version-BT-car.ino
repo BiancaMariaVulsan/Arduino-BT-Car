@@ -17,7 +17,7 @@ int MAX_SPEED_RIGHT;
 int SZ_SPEEDTHR = 150;
 
 int buzzerPin = 2;
-
+int flag = 0;
 
 void setup()  {
 
@@ -38,10 +38,12 @@ void loop()
   if ( temp <= TURN_DIST && temp > 0 ) {
     moveStop(); BEEP_INT();
   }
-  
+  char state = 'X';
   if (Serial.available() > 0) {
-    char state = Serial.read();
-
+    state = Serial.read();
+    flag = 1;
+  }
+  if (flag == 1) {
     switch (state)
     {
       case 'F' : {
@@ -77,8 +79,10 @@ void loop()
         }
       default : break;
     }
+    flag = 0;
   }
-  delay(50);
+  Serial.flush();
+  delay(100);
 }
 
 void moveForward(void)
@@ -164,8 +168,11 @@ int readPing()
 
   // convert the time into a distance
   cm = microsecondsToCentimeters(duration);
-  Serial.print("Distance: ");
-  Serial.print(cm);
+  if ( cm < TURN_DIST) {
+    Serial.print("Distance: ");
+    Serial.print(cm);
+    Serial.println(" cm");
+  }
   return cm ;
 }
 
