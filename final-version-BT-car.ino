@@ -14,10 +14,12 @@ String motorSet = "";
 
 int MAX_SPEED_LEFT ;
 int MAX_SPEED_RIGHT;
-int SZ_SPEEDTHR = 150;
+int SPEED = 100;
 
 int buzzerPin = 2;
 int flag = 0;
+
+bool detMode = false;
 
 void setup()  {
 
@@ -28,17 +30,29 @@ void setup()  {
   Serial.begin(9600);
   delay(5000);
 
-  MAX_SPEED_LEFT = SZ_SPEEDTHR;
-  MAX_SPEED_RIGHT = SZ_SPEEDTHR;
+  MAX_SPEED_LEFT = SPEED;
+  MAX_SPEED_RIGHT = SPEED;
 }
 
 void loop()
 {
+  char state = 'X';
   int temp = readPing();
-  if ( temp <= TURN_DIST && temp > 0 ) {
+  if ( temp <= TURN_DIST && temp > 0 && !detMode) {
     moveStop(); BEEP_INT();
   }
-  char state = 'X';
+
+  if ( temp <= TURN_DIST && temp > 0 && detMode) {
+    Serial.println("Tutning left!");
+    for (int i = 0; i < 10; i++) {
+      turnLeft();
+    }
+    delay(1000); 
+    state = 'M';
+    flag = 1;
+    BEEP_INT();
+  }
+  
   if (Serial.available() > 0) {
     state = Serial.read();
     flag = 1;
@@ -47,6 +61,7 @@ void loop()
     switch (state)
     {
       case 'F' : {
+          detMode = false;
           Serial.println("Forward!");
           int temp = readPing();
           if ( temp <= TURN_DIST && temp > 0 ) {
@@ -58,26 +73,39 @@ void loop()
           break;
         }
       case 'B' : {
-          Serial.println("Backword!");
+          detMode = false;
+          Serial.println("Backwards!");
           moveBackward();
           break;
         }
       case 'L' : {
+          detMode = false;
           Serial.println("Left!");
           turnLeft();
           break;
         }
       case 'R' : {
+          detMode = false;
           Serial.println("Right!");
           turnRight();
           break;
         }
       case 'S' : {
+          detMode = false;
           Serial.println("Stop!");
           moveStop();
           break;
         }
-      default : break;
+      case 'M' : {
+          detMode = true;
+          Serial.println("Detection mode!");
+          digitalWrite(buzzerPin, LOW);
+          moveForward();
+          break;
+        }
+      default : {
+          break;
+        }
     }
     flag = 0;
   }
@@ -89,9 +117,9 @@ void moveForward(void)
 {
   motorSet = "FORWARD";
   leftMotor1.run(FORWARD);
-  rightMotor1.run(FORWARD);
-  leftMotor2.run(FORWARD);
-  rightMotor2.run(FORWARD);
+  rightMotor1.run(BACKWARD);
+  leftMotor2.run(BACKWARD);
+  rightMotor2.run(BACKWARD);
   leftMotor1.setSpeed(MAX_SPEED_LEFT);
   rightMotor1.setSpeed(MAX_SPEED_RIGHT);
   leftMotor2.setSpeed(MAX_SPEED_LEFT);
@@ -102,9 +130,9 @@ void moveBackward(void)
 {
   motorSet = "BACKWARD";
   leftMotor1.run(BACKWARD);
-  rightMotor1.run(BACKWARD);
-  leftMotor2.run(BACKWARD);
-  rightMotor2.run(BACKWARD);
+  rightMotor1.run(FORWARD);
+  leftMotor2.run(FORWARD);
+  rightMotor2.run(FORWARD);
   leftMotor1.setSpeed(MAX_SPEED_LEFT);
   rightMotor1.setSpeed(MAX_SPEED_RIGHT);
   leftMotor2.setSpeed(MAX_SPEED_LEFT);
@@ -115,9 +143,9 @@ void turnLeft(void)
 {
   static int MAX_SPEED_LEFT_AL, MAX_SPEED_RIGHT_AL;
   motorSet = "LEFT";
-  leftMotor1.run(BACKWARD);
-  rightMotor1.run(FORWARD);
-  leftMotor2.run(BACKWARD);
+  leftMotor1.run(FORWARD);
+  rightMotor1.run(BACKWARD);
+  leftMotor2.run(FORWARD);
   rightMotor2.run(FORWARD);
   MAX_SPEED_LEFT_AL = MAX_SPEED_LEFT > 200 ? 200 : MAX_SPEED_LEFT;
   MAX_SPEED_RIGHT_AL = MAX_SPEED_RIGHT > 200 ? 200 : MAX_SPEED_RIGHT;
@@ -131,9 +159,9 @@ void turnRight(void)
 {
   static int MAX_SPEED_LEFT_AR, MAX_SPEED_RIGHT_AR;
   motorSet = "RIGHT";
-  leftMotor1.run(FORWARD);
-  rightMotor1.run(BACKWARD);
-  leftMotor2.run(FORWARD);
+  leftMotor1.run(BACKWARD);
+  rightMotor1.run(FORWARD);
+  leftMotor2.run(BACKWARD);
   rightMotor2.run(BACKWARD);
   MAX_SPEED_LEFT_AR = MAX_SPEED_LEFT > 200 ? 200 : MAX_SPEED_LEFT;
   MAX_SPEED_RIGHT_AR = MAX_SPEED_RIGHT > 200 ? 200 : MAX_SPEED_RIGHT;
@@ -173,6 +201,7 @@ int readPing()
     Serial.print(cm);
     Serial.println(" cm");
   }
+
   return cm ;
 }
 
